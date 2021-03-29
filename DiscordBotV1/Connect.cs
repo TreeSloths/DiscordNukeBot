@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Linq;
+using System.Reflection;
+using System.Reflection.Metadata;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
@@ -11,25 +14,28 @@ using MemberInfo = System.Reflection.MemberInfo;
 
 namespace DiscordBotV1
 {
-    class Program
+    public class Program
     {
-        private DiscordSocketClient _client;
+        public DiscordSocketClient Client;
+        public Commandhandler Commandhandler;
 
         public static void Main(string[] args)
             => new Program().MainAsync().GetAwaiter().GetResult();
 
         public async Task MainAsync()
         {
-            _client = new DiscordSocketClient();
+            Client = new DiscordSocketClient();
 
-            _client.Log += Log;
+            Client.Log += Log;
             var token = Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN");
 
-            await _client.LoginAsync(TokenType.Bot, token);
-            await _client.StartAsync();
-
+            await Client.LoginAsync(TokenType.Bot, token);
+            await Client.StartAsync();
+            Commandhandler = new Commandhandler(Client, new CommandService());
+            await Commandhandler.InstallCommandsAsync();
             await Task.Delay(-1);
         }
+
 
         private Task Log(LogMessage msg)
         {
