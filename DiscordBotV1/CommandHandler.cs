@@ -39,24 +39,35 @@ namespace DiscordBotV1
 
             var context = new SocketCommandContext(_client, message);
             await _commands.ExecuteAsync(context: context, argPos: argPos, services: _serviceProvider);
+
+            var result = await _commands.ExecuteAsync(context: context, argPos: argPos, services: _serviceProvider);
+
+            if (!result.IsSuccess)
+            {
+                switch (result.Error)
+                {
+                    case CommandError.UnknownCommand:
+                        break;
+                    case CommandError.UnmetPrecondition:
+                        await context.Channel.SendMessageAsync(result.ErrorReason);
+                        break;
+                    default:
+                        await context.Channel.SendMessageAsync(result.ErrorReason);
+                        break;
+                }
+            }
         }
 
-        public async Task CommandExecutedAsync(Optional<CommandInfo> command, ICommandContext context, IResult result)
+        public async Task LogAsync(LogMessage logMessage)
         {
-            if (!command.IsSpecified)
+            if (logMessage.Exception is CommandException cmdException)
             {
-                _Ilogger.LogError($"Command failed to execute for [] <-> []!");
-                return;
+                await cmdException.Context.Channel.SendMessageAsync("Something went catastrophically wrong!");
+
+                Console.WriteLine(
+                    $"{cmdException.Context.User} failed to execute '{cmdException.Command.Name}' in {cmdException.Context.Channel}.");
+                Console.WriteLine(cmdException.ToString());
             }
-
-
-            if (result.IsSuccess)
-            {
-                _Ilogger.LogInformation($"Command [] executed for [] on []");
-                return;
-            }
-
-            await context.Channel.SendMessageAsync($"Sorry, ... something went wrong -> ");
         }
     }
 }
